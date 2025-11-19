@@ -9,7 +9,6 @@ from re import search, findall, MULTILINE
 from os.path import basename, getsize, isfile
 from typing import List, Any
 from plotting import HATCHES as hatches
-from plotting import COLORS as colors
 from plotting import mybarplot
 from tqdm import tqdm
 import scipy.stats as scipyst
@@ -62,8 +61,8 @@ hue_map = {
     'mirror': 'Mirror'
 }
 
-YLABEL = 'Restart time [ms]'
-XLABEL = 'System'
+YLABEL = 'Throughput [Mpps]'
+XLABEL = 'Packet size [B]'
 
 def map_hue(df_hue, hue_map):
     return df_hue.apply(lambda row: hue_map.get(str(row), row))
@@ -186,15 +185,15 @@ def main():
 
     columns = ['size', 'vnf', 'msec']
     sizes = [ "64", "256", "1024", "1508" ]
-    vnfs = [ "empty", "nat", "filter", "dpi", "tcp" ]
+    vnfs = [ "Native", "LibOS (Gramine)", "Containers (Kata)", "VM (KVM-Linux)", "CVM (SEV-SNP)", "Wallet", "Slick" ]
     rows = []
     for size in sizes:
         for vnf in vnfs:
             value = 1
-            if size == "click-unikraftvm":
+            if vnf == "Wallet":
+                value = 0.5
+            if vnf == "Slick":
                 value = 2
-            if size == "click-linuxvm":
-                value = 3
             rows += [[size, vnf, value]]
     df = pd.DataFrame(rows, columns=columns)
 
@@ -203,7 +202,7 @@ def main():
     df['vnf'] = df['vnf'].apply(lambda row: hue_map.get(str(row), row))
 
     # map colors to hues
-    # colors = sns.color_palette("pastel", len(df['hue'].unique())-1) + [ mcolors.to_rgb('sandybrown') ]
+    colors = sns.color_palette("pastel", len(df['vnf'].unique())-1) + [ mcolors.to_rgb('sandybrown') ]
     # palette = dict(zip(df['hue'].unique(), colors))
 
     # Only removes outliers that are excessive (e.g. 1000ms from a median of 15ms).
@@ -312,7 +311,7 @@ def main():
     # grid.set_ylabels(YLABEL)
     #
     plt.annotate(
-        "↓ Lower is better", # or ↓ ← ↑ →
+        "↑ Higher is better", # or ↓ ← ↑ →
         xycoords="axes points",
         # xy=(0, 0),
         xy=(0, 0),
