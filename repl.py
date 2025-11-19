@@ -3,7 +3,7 @@ import importlib
 import sys
 
 def foobar():
-    print("ok6")
+    print("ok7")
 
 SIZE_SMALL = 64
 SIZE_BIG = 1522
@@ -33,6 +33,9 @@ def nspp2mpps(nspp) -> float:
 def gbit2mpps(gbitps, size = SIZE_SMALL):
     pps = gbitps * 1e9 / ((size + 20) * 8)
     return pps2mpps(pps)
+
+def gb2gbit(gb):
+    return gb * 8
 
 def cycles2ns(cycles, freq_mhz=1996):
     s = cycles / (1e6*freq_mhz)
