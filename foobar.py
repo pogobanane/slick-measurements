@@ -43,7 +43,7 @@ COLORS = [ str(i) for i in range(20) ]
 #     '1_vfio_hardware': 'qemu-pt (w/ rte_flow)',
 # }
 
-system_map = {
+size_map = {
         # 'ebpf-click-unikraftvm': 'Unikraft click (eBPF)',
         # 'click-unikraftvm': 'Unikraft click',
         # 'click-linuxvm': 'Linux click',
@@ -184,22 +184,22 @@ def main():
     log("Preparing plotting data")
 
 
-    columns = ['system', 'vnf', 'msec']
-    systems = [ "ebpf-click-unikraftvm", "click-unikraftvm", "click-linuxvm" ]
+    columns = ['size', 'vnf', 'msec']
+    sizes = [ "64", "256", "1024", "1508" ]
     vnfs = [ "empty", "nat", "filter", "dpi", "tcp" ]
     rows = []
-    for system in systems:
+    for size in sizes:
         for vnf in vnfs:
             value = 1
-            if system == "click-unikraftvm":
+            if size == "click-unikraftvm":
                 value = 2
-            if system == "click-linuxvm":
+            if size == "click-linuxvm":
                 value = 3
-            rows += [[system, vnf, value]]
+            rows += [[size, vnf, value]]
     df = pd.DataFrame(rows, columns=columns)
 
 
-    df['system'] = df['system'].apply(lambda row: system_map.get(str(row), row))
+    df['size'] = df['size'].apply(lambda row: size_map.get(str(row), row))
     df['vnf'] = df['vnf'].apply(lambda row: hue_map.get(str(row), row))
 
     # map colors to hues
@@ -209,9 +209,9 @@ def main():
     # Only removes outliers that are excessive (e.g. 1000ms from a median of 15ms).
     # We need this because our linux measurements sometimes break and don't detect when click is up.
     dfs = []
-    for system in df['system'].unique():
+    for size in df['size'].unique():
         for hue in df['vnf'].unique():
-            raw = df[(df['system'] == system) & (df['vnf'] == hue)]
+            raw = df[(df['size'] == size) & (df['vnf'] == hue)]
             clean = raw[(raw['msec'] < (50*raw['msec'].median()))]
             dfs += [ clean ]
     df = pd.concat(dfs)
@@ -223,7 +223,7 @@ def main():
     # Plot using Seaborn
     sns.barplot(
                data=df,
-               x='system',
+               x='size',
                y='msec',
                hue="vnf",
                # palette=palette,
@@ -232,8 +232,8 @@ def main():
                edgecolor="dimgray",
                )
 
-    mybarplot.add_hatches(data=df, x='system', y='msec', hue='vnf', ax=ax, hatch_by='vnf', hatches=hatches)
-    mybarplot.add_colors(data=df, x='system', y='msec', hue='vnf', ax=ax, color_by='vnf', colors=colors)
+    mybarplot.add_hatches(data=df, x='size', y='msec', hue='vnf', ax=ax, hatch_by='vnf', hatches=hatches)
+    mybarplot.add_colors(data=df, x='size', y='msec', hue='vnf', ax=ax, color_by='vnf', colors=colors)
     # sns.add_legend(
     #         # bbox_to_anchor=(0.5, 0.77),
     #         loc='right',
