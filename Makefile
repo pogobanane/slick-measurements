@@ -1,6 +1,9 @@
 .PHONY: repl
 
+OUT_DIR := ./
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+PYARGS :=
+PAPER_FIGURES := app-throughput.pdf
 
 WIDTH := 5.0
 WIDTH2 := 5.5
@@ -12,9 +15,17 @@ repl:
 	# bpython -i ${ROOT_DIR}/bpython.py
 
 
-foobar.pdf:
-	python3 foobar.py \
-		-o foobar.pdf \
+
+all: $(PAPER_FIGURES)
+
+install:
+	test -n "$(OVERLEAF)" # OVERLEAF must be set
+	for f in $(PAPER_FIGURES); do test -f $(OUT_DIR)/$$f && cp $(OUT_DIR)/$$f $(OVERLEAF)/$$f || true; done
+
+
+app-throughput.pdf:
+	python3 $(PYARGS) app-throughput.py \
+		-o $(OUT_DIR)/app-throughput.pdf \
 		--width $(WIDTH) --height 2 \
 		--1 ./flake.nix
 
