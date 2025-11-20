@@ -35,3 +35,9 @@ chain-scalability.pdf:
 		--width $(WIDTH) --height 2 \
 		--1 ./flake.nix
 
+microbencharks.pdf:
+	python3 $(PYARGS) microbencharks.py \
+		-o $(OUT_DIR)/microbencharks.pdf \
+		--width $(DWIDTH) --height 2 \
+		--1 ./flake.nix
+
