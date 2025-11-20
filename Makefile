@@ -3,7 +3,7 @@
 OUT_DIR := ./
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PYARGS :=
-PAPER_FIGURES := app-throughput.pdf chain-scalability.pdf
+PAPER_FIGURES := app-throughput.pdf chain-scalability.pdf microbenchmarks.pdf
 
 WIDTH := 5.0
 WIDTH2 := 5.5
@@ -20,7 +20,7 @@ all: $(PAPER_FIGURES)
 
 install:
 	test -n "$(OVERLEAF)" # OVERLEAF must be set
-	for f in $(PAPER_FIGURES); do test -f $(OUT_DIR)/$$f && cp $(OUT_DIR)/$$f $(OVERLEAF)/$$f || true; done
+	for f in $(PAPER_FIGURES); do echo test -f $(OUT_DIR)/$$f && cp $(OUT_DIR)/$$f $(OVERLEAF)/$$f || true; done
 
 
 app-throughput.pdf:

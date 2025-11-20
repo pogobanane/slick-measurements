@@ -9,7 +9,7 @@ from os.path import basename, getsize
 import pandas as pd
 from plotting import map_grid_titles
 
-PLOTTING_NAME="microbencharks"
+PLOTTING_NAME="microbenchmarks"
 DEFAULT_OUTPUT=f"{PLOTTING_NAME}.pdf"
 
 COLORS = [ str(i) for i in range(20) ]
