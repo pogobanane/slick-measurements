@@ -192,15 +192,6 @@ def main():
     parser = setup_parser()
     args = parse_args(parser)
 
-    fig = plt.figure(figsize=(args.width, args.height))
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set_axisbelow(True)
-    if args.title:
-        plt.title(args.title)
-    plt.xlabel('Chain length')
-    plt.ylabel('Throughput [Mpps]      ')
-    plt.grid()
-
     plots = []
 
     # dfs = []
@@ -225,74 +216,75 @@ def main():
     #     overhead = (nompk-mpk)/nompk
     #     ns = 1.0 / (nompk) * overhead * 1_000.0
     #     print(f'At {s}B, Mpps for no MPK: {nompk:.3f}, with MPK: {mpk:.3f}, overhead : {overhead*100:.3f}% ({ns:.1f}ns per packet)')
-    columns = ['system', 'chain', 'mpps']
+    columns = ['system', 'chain', 'mpps', 'plot_type']
     systems = [ "Native", "LibOS (Gramine)", "Containers (Kata)", "VM (KVM-Linux)", "CVM (SEV-SNP)", "Wallet", "Slick" ]
     chains = [ 1, 4, 16 ]
     rows = []
-    for system in systems:
-        for chain in chains:
-            value = 0
-            if chain == 1:
-                value = 2
-            elif chain == 4:
-                value = 1
-            elif chain == 16:
-                value = 0.8
 
-            factor = 1
-            if system == "Slick":
-                factor = 1.5
+    # Create data for both plots
+    for plot_type in ["Plot A", "Plot B"]:
+        for system in systems:
+            for chain in chains:
+                value = 0
+                if chain == 1:
+                    value = 2
+                elif chain == 4:
+                    value = 1
+                elif chain == 16:
+                    value = 0.8
 
-            rows += [[system, chain, factor*value]]
+                factor = 1
+                if system == "Slick":
+                    factor = 1.5
+
+                rows += [[system, chain, factor*value, plot_type]]
 
     # rows += [["MorphOS MPK", 600, 0, 5]]
     df = pd.DataFrame(rows, columns=columns)
 
 
 
-    # flights = sns.load_dataset("flights")
-    # sns.lineplot(data=flights, x="year", y="passengers", markers=)
+    # Create FacetGrid for side-by-side plots
+    grid = sns.FacetGrid(df, col='plot_type', height=args.height, aspect=args.width/(2*args.height),
+                         sharey=True, sharex=True)
 
-    plot = sns.lineplot(
-        data=df,
-        # x=bin_edges[1:],
-        # y=cdf,
-        x = "chain",
-        y = "mpps",
-        hue = "system",
-        style = "system",
-        # label=f'{self._name}',
-        # color=self._line_color,
-        # linestyle=self._line,
-        # linewidth=1,
-        markers=True,
-        errorbar='ci',
-        # markers=[ 'X' ],
-        # markeredgecolor='black',
-        # markersize=60,
-        # markeredgewidth=1,
-    )
+    # Set axis below for all subplots
+    for ax in grid.axes.flat:
+        ax.set_axisbelow(True)
+        ax.grid(True)
+
+    # Map lineplot to each facet
+    grid.map_dataframe(sns.lineplot,
+                      x="chain",
+                      y="mpps",
+                      hue="system",
+                      style="system",
+                      markers=True,
+                      errorbar='ci')
 
     if not args.logarithmic:
-        # plt.xticks([0, 256, 512, 748, 1024, 1280, 1518])
-        plt.ylim(bottom=0)
+        for ax in grid.axes.flat:
+            ax.set_ylim(bottom=0)
     else:
-        ax.set_xscale('log' if args.logarithmic else 'linear')
-    # plt.xlim(0, 1)
+        for ax in grid.axes.flat:
+            ax.set_xscale('log')
 
-    legend = None
+    def rename_legend_labels(ax, label_map):
+        if ax.get_legend() is not None:
+            for i, text in enumerate(ax.get_legend().get_texts()):
+                if text.get_text() in label_map:
+                    text.set_text(label_map[text.get_text()])
 
-    def rename_legend_labels(plt, label_map):
-        for i, text in enumerate(plt.legend().get_texts()):
-            if text.get_text() in label_map:
-                text.set_text(label_map[text.get_text()])
+    # Apply legend renaming to each axis
+    for ax in grid.axes.flat:
+        rename_legend_labels(ax, LEGEND_MAP)
 
-    rename_legend_labels(plt, LEGEND_MAP)
+    # Add legend to the grid
+    grid.add_legend(title=None, frameon=False)
 
-    sns.move_legend(ax, "upper right",
-                    # bbox_to_anchor=(0.5, 0.95),
-                    # bbox_to_anchor=(-0.011, -0.1),
-                    ncol=2, title=None, frameon=False)
+    # Position the legend
+    if grid._legend:
+        sns.move_legend(grid, "upper right", ncol=2, title=None, frameon=False)
     # plot.add_legend(
     #         bbox_to_anchor=(0.55, 0.3),
     #         loc='upper left',
@@ -325,22 +317,24 @@ def main():
     #                         ncol=3, title=None, frameon=False,
     #                         )
 
-    ax.annotate(
-        "↑ Higher is better", # or ↓ ← ↑ →
-        xycoords="axes points",
-        # xy=(0, 0),
-        xy=(10, 0),
-        xytext=(-25, -27),
-        # fontsize=FONT_SIZE,
-        color="navy",
-        weight="bold",
-    )
+    # Add annotations to each subplot
+    for ax in grid.axes.flat:
+        ax.annotate(
+            "↑ Higher is better", # or ↓ ← ↑ →
+            xycoords="axes points",
+            xy=(10, 0),
+            xytext=(-25, -27),
+            color="navy",
+            weight="bold",
+        )
 
-    # legend.get_frame().set_facecolor('white')
-    # legend.get_frame().set_alpha(0.8)
-    fig.tight_layout(pad=0.1)
-    plt.subplots_adjust(left=0.1)
-    plt.savefig(args.output.name)
+    # Set axis labels
+    grid.set_axis_labels('Chain length', 'Throughput [Mpps]      ')
+
+    # Adjust layout and save
+    grid.figure.tight_layout(pad=0.1)
+    grid.figure.subplots_adjust(left=0.1)
+    grid.savefig(args.output.name)
     plt.close()
 
 
