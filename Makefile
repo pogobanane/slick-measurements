@@ -32,7 +32,7 @@ app-throughput.pdf:
 chain-scalability.pdf:
 	python3 $(PYARGS) chain-scalability.py \
 		-o $(OUT_DIR)/chain-scalability.pdf \
-		--width $(WIDTH) --height 2 \
+		--width $(DWIDTH) --height 2 \
 		--1 ./flake.nix
 
 microbencharks.pdf:

@@ -57,8 +57,12 @@ system_map = {
         }
 
 grid_title_map = {
-    'plot_type = throughput': 'Throughput',
-    'plot_type = latency': 'Latency',
+    'plot_order = chain_throughput': 'Chain Length\nThroughput',
+    'plot_order = chain_latency': 'Chain Length\nLatency',
+    'plot_order = vnf_duration_throughput': 'VNF Duration\nThroughput',
+    'plot_order = vnf_duration_latency': 'VNF Duration\nLatency',
+    'plot_order = memory_accesses_throughput': 'Memory Accesses\nThroughput',
+    'plot_order = memory_accesses_latency': 'Memory Accesses\nLatency',
 }
 
 # Set global font size
@@ -222,42 +226,59 @@ def main():
     #     overhead = (nompk-mpk)/nompk
     #     ns = 1.0 / (nompk) * overhead * 1_000.0
     #     print(f'At {s}B, Mpps for no MPK: {nompk:.3f}, with MPK: {mpk:.3f}, overhead : {overhead*100:.3f}% ({ns:.1f}ns per packet)')
-    columns = ['system', 'chain', 'mpps', 'plot_type']
+    columns = ['system', 'x_value', 'y_value', 'plot_type', 'metric_type']
     systems = [ "Native", "LibOS (Gramine)", "Containers (Kata)", "VM (KVM-Linux)", "CVM (SEV-SNP)", "Wallet", "Slick" ]
-    chains = [ 1, 4, 16 ]
     rows = []
 
-    # Create data for both plots
-    for plot_type in ["throughput", "latency"]:
-        for system in systems:
-            for chain in chains:
-                value = 0
-                if chain == 1:
-                    value = 2
-                elif chain == 4:
-                    value = 1
-                elif chain == 16:
-                    value = 0.8
+    # Create data for all 6 plots (3 metric types x 2 plot types)
+    for metric_type in ["chain", "vnf_duration", "memory_accesses"]:
+        for plot_type in ["throughput", "latency"]:
+            for system in systems:
+                # Define x values based on metric type
+                if metric_type == "chain":
+                    x_values = [1, 4, 16]
+                elif metric_type == "vnf_duration":
+                    x_values = [10, 50, 100]  # microseconds
+                else:  # memory_accesses
+                    x_values = [0, 10, 100]
 
-                factor = 1
-                if system == "Slick":
-                    factor = 1.5
+                for x_val in x_values:
+                    # Calculate base value
+                    if metric_type == "chain":
+                        if x_val == 1:
+                            value = 2
+                        elif x_val == 4:
+                            value = 1
+                        else:  # 16
+                            value = 0.8
+                    elif metric_type == "vnf_duration":
+                        value = 2.5 - (x_val / 50)  # decreases with duration
+                    else:  # memory_accesses
+                        value = 2 - (x_val / 100) * 1.2  # decreases with accesses
 
-                value *= factor
+                    factor = 1
+                    if system == "Slick":
+                        factor = 1.5
 
-                if plot_type == "latency":
-                    value = 3.5 - value
+                    value *= factor
 
-                rows += [[system, chain, value, plot_type]]
+                    if plot_type == "latency":
+                        value = 3.5 - value
 
-    # rows += [["MorphOS MPK", 600, 0, 5]]
+                    rows += [[system, x_val, value, plot_type, metric_type]]
+
     df = pd.DataFrame(rows, columns=columns)
 
+    # Create a combined column for ordering: chain_thr, chain_lat, vnf_thr, vnf_lat, mem_thr, mem_lat
+    df['plot_order'] = df['metric_type'] + '_' + df['plot_type']
+    plot_order = ['chain_throughput', 'chain_latency',
+                  'vnf_duration_throughput', 'vnf_duration_latency',
+                  'memory_accesses_throughput', 'memory_accesses_latency']
 
-
-    # Create FacetGrid for side-by-side plots
-    grid = sns.FacetGrid(df, col='plot_type', height=args.height, aspect=args.width/(2*args.height),
-                         sharey=False, sharex=True)
+    # Create FacetGrid with single row and 6 columns
+    grid = sns.FacetGrid(df, col='plot_order', col_order=plot_order,
+                         height=args.height, aspect=args.width/6/args.height,
+                         sharey=False, sharex=False)
 
     # Set axis below for all subplots
     for ax in grid.axes.flat:
@@ -266,8 +287,8 @@ def main():
 
     # Map lineplot to each facet
     grid.map_dataframe(sns.lineplot,
-                      x="chain",
-                      y="mpps",
+                      x="x_value",
+                      y="y_value",
                       hue="system",
                       style="system",
                       markers=True,
@@ -330,31 +351,27 @@ def main():
     #                         ncol=3, title=None, frameon=False,
     #                         )
 
-    # Add annotation to first subplot only
-    grid.axes.flat[0].annotate(
-        "↑ Higher is better", # or ↓ ← ↑ →
-        xycoords="axes points",
-        xy=(10, 0),
-        xytext=(-25, -27),
-        color="navy",
-        weight="bold",
-    )
-    grid.axes.flat[1].annotate(
-        "↓ Lower is better", # or ↓ ← ↑ →
-        xycoords="axes points",
-        xy=(10, 0),
-        xytext=(-25, -27),
-        color="navy",
-        weight="bold",
-    )
+    # # Add annotations to first pair
+    # grid.axes.flat[0].annotate(
+    #     "↑ Higher is better",
+    #     xycoords="axes points",
+    #     xy=(10, 0),
+    #     xytext=(-25, -27),
+    #     color="navy",
+    #     weight="bold",
+    # )
 
-    # Set axis labels (different y-axis for each subplot)
+    # Set axis labels for each subplot
+    xlabels = ['Packet processing [ns]', 'Packet processing [ns]',
+               'Memory accesses [kB]', 'Memory accesses [kB]',
+               'Memory accesses [kB]', 'Memory accesses [kB]']
+    ylabels = ['Throughput [Mpps]', 'Latency [ms]',
+               'Throughput [Mpps]', 'Latency [ms]',
+               'Throughput [Mpps]', 'Latency [ms]']
+
     for i, ax in enumerate(grid.axes.flat):
-        ax.set_xlabel('                   Chain length')
-        if i == 0:
-            ax.set_ylabel('Throughput [Mpps]')
-        else:
-            ax.set_ylabel('Latency [ms]')
+        ax.set_xlabel(xlabels[i])
+        ax.set_ylabel(ylabels[i])
 
     map_grid_titles(grid, grid_title_map)
 
