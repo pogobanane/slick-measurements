@@ -29,3 +29,9 @@ app-throughput.pdf:
 		--width $(WIDTH) --height 2 \
 		--1 ./flake.nix
 
+chain-scalability.pdf:
+	python3 $(PYARGS) chain-scalability.py \
+		-o $(OUT_DIR)/chain-scalability.pdf \
+		--width $(WIDTH) --height 2 \
+		--1 ./flake.nix
+
