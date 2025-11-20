@@ -197,7 +197,7 @@ def main():
     ax.set_axisbelow(True)
     if args.title:
         plt.title(args.title)
-    plt.xlabel('Packet size')
+    plt.xlabel('Chain length')
     plt.ylabel('Throughput [Mpps]      ')
     plt.grid()
 
@@ -211,56 +211,43 @@ def main():
     #         name = args.__dict__[f'{color}_name']
     #         dfs += [ arg_df ]
     # df = pd.concat(dfs)
-    # for s in df['size'].unique():
+    # for s in df['chain'].unique():
     #     mpps = ((10* 1024**3 ) / ((s+20) * 8))
     #     df.loc[len(df)] = [len(df), 3, 1, "rx", "vpp", s, 'filter', "Max IO bandwidth", 0, mpps ]
 
     # df['pps'] = df['pps'].apply(lambda pps: pps / 1_000_000) # now mpps
-    # df['size'] = df['size'].astype(int)
+    # df['chain'] = df['chain'].astype(int)
     # df['system'] = df['system'].apply(lambda row: system_map.get(str(row), row))
-    # df['gbit'] = mpps_to_gbitps(df['pps'], df['size'])
+    # df['gbit'] = mpps_to_gbitps(df['pps'], df['chain'])
     # for s in [64, 128, 256, 512]:
-    #     nompk = df[(df['system'] == 'MorphOS') & (df['size'] == s)]['pps'].mean()
-    #     mpk = df[(df['system'] == 'MorphOS + MPK') & (df['size'] == s)]['pps'].mean()
+    #     nompk = df[(df['system'] == 'MorphOS') & (df['chain'] == s)]['pps'].mean()
+    #     mpk = df[(df['system'] == 'MorphOS + MPK') & (df['chain'] == s)]['pps'].mean()
     #     overhead = (nompk-mpk)/nompk
     #     ns = 1.0 / (nompk) * overhead * 1_000.0
     #     print(f'At {s}B, Mpps for no MPK: {nompk:.3f}, with MPK: {mpk:.3f}, overhead : {overhead*100:.3f}% ({ns:.1f}ns per packet)')
-    columns = ['system', 'size', 'mpps', 'gbit']
-    systems = [ "MorphOS", "MorphOS MPK",
-               # "MorphOS MPK (perm)", "MorphOS MPK (copy)"
-               ]
-    sizes = [ 64, 1300, 1518 ]
+    columns = ['system', 'chain', 'mpps']
+    systems = [ "Native", "LibOS (Gramine)", "Containers (Kata)", "VM (KVM-Linux)", "CVM (SEV-SNP)", "Wallet", "Slick" ]
+    chains = [ 1, 4, 16 ]
     rows = []
     for system in systems:
-        for size in sizes:
+        for chain in chains:
             value = 0
-            if size == 64:
-                match system:
-                    case "MorphOS":
-                        value = 2.4
-                    case "MorphOS MPK":
-                        value = 1.2
-                    case "MorphOS MPK (perm)":
-                        value = 1.2
-                    case "MorphOS MPK (copy)":
-                        value = 2.3
-            else:
-                match system:
-                    case "MorphOS":
-                        value = 10 * 1000 / 8 / (size + 7 + 1 + 12)
-                    case "MorphOS MPK":
-                        value = 10 * 1000 / 8 / (size + 7 + 1 + 12)
-                    case "MorphOS MPK (perm)":
-                        value = 10 * 1000 / 8 / (size + 7 + 1 + 12)
-                    case "MorphOS MPK (copy)":
-                        value = 9 * 1000 / 8 / (size + 7 + 1 + 12)
+            if chain == 1:
+                value = 2
+            elif chain == 4:
+                value = 1
+            elif chain == 16:
+                value = 0.8
 
-            gbit = value * (size + 7 + 1 + 12) * 8 / 1000
+            factor = 1
+            if system == "Slick":
+                factor = 1.5
 
-            rows += [[system, size, value, gbit]]
+            rows += [[system, chain, factor*value]]
 
     # rows += [["MorphOS MPK", 600, 0, 5]]
     df = pd.DataFrame(rows, columns=columns)
+
 
 
     # flights = sns.load_dataset("flights")
@@ -270,7 +257,7 @@ def main():
         data=df,
         # x=bin_edges[1:],
         # y=cdf,
-        x = "size",
+        x = "chain",
         y = "mpps",
         hue = "system",
         style = "system",
@@ -287,8 +274,8 @@ def main():
     )
 
     if not args.logarithmic:
-        plt.xticks([0, 256, 512, 748, 1024, 1280, 1518])
-        plt.ylim(bottom=0, top=2.5)
+        # plt.xticks([0, 256, 512, 748, 1024, 1280, 1518])
+        plt.ylim(bottom=0)
     else:
         ax.set_xscale('log' if args.logarithmic else 'linear')
     # plt.xlim(0, 1)
@@ -302,10 +289,10 @@ def main():
 
     rename_legend_labels(plt, LEGEND_MAP)
 
-    sns.move_legend(ax, "lower left",
+    sns.move_legend(ax, "upper right",
                     # bbox_to_anchor=(0.5, 0.95),
-                    bbox_to_anchor=(-0.011, -0.1),
-                    ncol=1, title=None, frameon=False)
+                    # bbox_to_anchor=(-0.011, -0.1),
+                    ncol=2, title=None, frameon=False)
     # plot.add_legend(
     #         bbox_to_anchor=(0.55, 0.3),
     #         loc='upper left',
