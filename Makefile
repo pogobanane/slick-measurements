@@ -3,7 +3,7 @@
 OUT_DIR := ./
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 PYARGS :=
-PAPER_FIGURES := app-throughput.pdf
+PAPER_FIGURES := app-throughput.pdf chain-scalability.pdf
 
 WIDTH := 5.0
 WIDTH2 := 5.5

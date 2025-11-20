@@ -7,6 +7,7 @@ import argparse
 from re import search
 from os.path import basename, getsize
 import pandas as pd
+from plotting import map_grid_titles
 
 PLOTTING_NAME="chain-scalability"
 DEFAULT_OUTPUT=f"{PLOTTING_NAME}.pdf"
@@ -54,6 +55,11 @@ system_map = {
         'uk': 'Unikraft',
         'Max IO bandwidth': 'Link speed (10G)'
         }
+
+grid_title_map = {
+    'plot_type = throughput': 'Throughput',
+    'plot_type = latency': 'Latency',
+}
 
 # Set global font size
 # plt.rcParams['font.size'] = 10  # Sets the global font size to 14
@@ -222,7 +228,7 @@ def main():
     rows = []
 
     # Create data for both plots
-    for plot_type in ["Plot A", "Plot B"]:
+    for plot_type in ["throughput", "latency"]:
         for system in systems:
             for chain in chains:
                 value = 0
@@ -237,7 +243,12 @@ def main():
                 if system == "Slick":
                     factor = 1.5
 
-                rows += [[system, chain, factor*value, plot_type]]
+                value *= factor
+
+                if plot_type == "latency":
+                    value = 3.5 - value
+
+                rows += [[system, chain, value, plot_type]]
 
     # rows += [["MorphOS MPK", 600, 0, 5]]
     df = pd.DataFrame(rows, columns=columns)
@@ -246,7 +257,7 @@ def main():
 
     # Create FacetGrid for side-by-side plots
     grid = sns.FacetGrid(df, col='plot_type', height=args.height, aspect=args.width/(2*args.height),
-                         sharey=True, sharex=True)
+                         sharey=False, sharex=True)
 
     # Set axis below for all subplots
     for ax in grid.axes.flat:
@@ -319,19 +330,33 @@ def main():
     #                         ncol=3, title=None, frameon=False,
     #                         )
 
-    # Add annotations to each subplot
-    for ax in grid.axes.flat:
-        ax.annotate(
-            "↑ Higher is better", # or ↓ ← ↑ →
-            xycoords="axes points",
-            xy=(10, 0),
-            xytext=(-25, -27),
-            color="navy",
-            weight="bold",
-        )
+    # Add annotation to first subplot only
+    grid.axes.flat[0].annotate(
+        "↑ Higher is better", # or ↓ ← ↑ →
+        xycoords="axes points",
+        xy=(10, 0),
+        xytext=(-25, -27),
+        color="navy",
+        weight="bold",
+    )
+    grid.axes.flat[1].annotate(
+        "↓ Lower is better", # or ↓ ← ↑ →
+        xycoords="axes points",
+        xy=(10, 0),
+        xytext=(-25, -27),
+        color="navy",
+        weight="bold",
+    )
 
-    # Set axis labels
-    grid.set_axis_labels('Chain length', 'Throughput [Mpps]      ')
+    # Set axis labels (different y-axis for each subplot)
+    for i, ax in enumerate(grid.axes.flat):
+        ax.set_xlabel('                   Chain length')
+        if i == 0:
+            ax.set_ylabel('Throughput [Mpps]')
+        else:
+            ax.set_ylabel('Latency [ms]')
+
+    map_grid_titles(grid, grid_title_map)
 
     # Adjust layout and save
     grid.figure.tight_layout(pad=0.1)
