@@ -20,7 +20,7 @@ all: $(PAPER_FIGURES)
 
 install:
 	test -n "$(OVERLEAF)" # OVERLEAF must be set
-	for f in $(PAPER_FIGURES); do echo test -f $(OUT_DIR)/$$f && cp $(OUT_DIR)/$$f $(OVERLEAF)/$$f || true; done
+	for f in $(PAPER_FIGURES); do test -f $(OUT_DIR)/$$f && cp $(OUT_DIR)/$$f $(OVERLEAF)/$$f || true; done
 
 
 app-throughput.pdf:
@@ -32,12 +32,12 @@ app-throughput.pdf:
 chain-scalability.pdf:
 	python3 $(PYARGS) chain-scalability.py \
 		-o $(OUT_DIR)/chain-scalability.pdf \
-		--width $(DWIDTH) --height 2 \
+		--width $(WIDTH) --height 2 \
 		--1 ./flake.nix
 
-microbencharks.pdf:
-	python3 $(PYARGS) microbencharks.py \
-		-o $(OUT_DIR)/microbencharks.pdf \
+microbenchmarks.pdf:
+	python3 $(PYARGS) microbenchmarks.py \
+		-o $(OUT_DIR)/microbenchmarks.pdf \
 		--width $(DWIDTH) --height 2 \
 		--1 ./flake.nix
 
