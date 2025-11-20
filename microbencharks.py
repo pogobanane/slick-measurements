@@ -57,12 +57,12 @@ system_map = {
         }
 
 grid_title_map = {
-    'plot_order = chain_throughput': 'Chain Length\nThroughput',
-    'plot_order = chain_latency': 'Chain Length\nLatency',
-    'plot_order = vnf_duration_throughput': 'VNF Duration\nThroughput',
-    'plot_order = vnf_duration_latency': 'VNF Duration\nLatency',
-    'plot_order = memory_accesses_throughput': 'Memory Accesses\nThroughput',
-    'plot_order = memory_accesses_latency': 'Memory Accesses\nLatency',
+    'plot_order = throughput_time': '(a) Throughput\n',
+    'plot_order = latency_time': '(b) Latency\n',
+    'plot_order = throughput_memory_fast': '(c) Throughput\n(no processing)',
+    'plot_order = latency_memory_fast': '(d) Latency\n(no processing)',
+    'plot_order = throughput_memory_slow': '(e) Throughput\n(200ns processing)',
+    'plot_order = latency_memory_slow': '(f) Latency\n(200ns processing)',
 }
 
 # Set global font size
@@ -231,30 +231,25 @@ def main():
     rows = []
 
     # Create data for all 6 plots (3 metric types x 2 plot types)
-    for metric_type in ["chain", "vnf_duration", "memory_accesses"]:
+    for metric_type in ["time", "memory_fast", "memory_slow"]:
         for plot_type in ["throughput", "latency"]:
             for system in systems:
                 # Define x values based on metric type
-                if metric_type == "chain":
-                    x_values = [1, 4, 16]
-                elif metric_type == "vnf_duration":
-                    x_values = [10, 50, 100]  # microseconds
-                else:  # memory_accesses
-                    x_values = [0, 10, 100]
+                if metric_type == "time":
+                    x_values = [10, 50, 100]  # packet processing in ns
+                elif metric_type == "memory_fast":
+                    x_values = [0, 10, 50]  # memory accesses in kB
+                else:  # memory_slow
+                    x_values = [0, 100, 500]  # memory accesses in kB
 
                 for x_val in x_values:
                     # Calculate base value
-                    if metric_type == "chain":
-                        if x_val == 1:
-                            value = 2
-                        elif x_val == 4:
-                            value = 1
-                        else:  # 16
-                            value = 0.8
-                    elif metric_type == "vnf_duration":
-                        value = 2.5 - (x_val / 50)  # decreases with duration
-                    else:  # memory_accesses
-                        value = 2 - (x_val / 100) * 1.2  # decreases with accesses
+                    if metric_type == "time":
+                        value = 2.5 - (x_val / 50)  # decreases with processing time
+                    elif metric_type == "memory_fast":
+                        value = 2.2 - (x_val / 50) * 0.8  # decreases with fast memory access
+                    else:  # memory_slow
+                        value = 2 - (x_val / 500) * 1.5  # decreases with slow memory access
 
                     factor = 1
                     if system == "Slick":
@@ -269,11 +264,11 @@ def main():
 
     df = pd.DataFrame(rows, columns=columns)
 
-    # Create a combined column for ordering: chain_thr, chain_lat, vnf_thr, vnf_lat, mem_thr, mem_lat
-    df['plot_order'] = df['metric_type'] + '_' + df['plot_type']
-    plot_order = ['chain_throughput', 'chain_latency',
-                  'vnf_duration_throughput', 'vnf_duration_latency',
-                  'memory_accesses_throughput', 'memory_accesses_latency']
+    # Create a combined column for ordering: time_thr, time_lat, mem_fast_thr, mem_fast_lat, mem_slow_thr, mem_slow_lat
+    df['plot_order'] = df['plot_type'] + '_' + df['metric_type']
+    plot_order = ['throughput_time', 'latency_time',
+                  'throughput_memory_fast', 'latency_memory_fast',
+                  'throughput_memory_slow', 'latency_memory_slow']
 
     # Create FacetGrid with single row and 6 columns
     grid = sns.FacetGrid(df, col='plot_order', col_order=plot_order,
