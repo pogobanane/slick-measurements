@@ -192,7 +192,7 @@ def main():
     parser = setup_parser()
     args = parse_args(parser)
 
-    plots = []
+    fig = plt.figure(figsize=(args.width, args.height))
 
     # dfs = []
     # for color in COLORS:
@@ -282,14 +282,16 @@ def main():
     # Add legend to the grid
     grid.add_legend(title=None, frameon=False)
 
-    # Position the legend
+    # Position the legend outside the plot area
     if grid._legend:
-        sns.move_legend(grid, "upper right", ncol=2, title=None, frameon=False)
+        sns.move_legend(grid, "center left", bbox_to_anchor=(1.02, 0.5), ncol=1, title=None, frameon=False)
     # plot.add_legend(
     #         bbox_to_anchor=(0.55, 0.3),
     #         loc='upper left',
     #         ncol=3, title=None, frameon=False,
     #                 )
+
+    grid.figure.set_size_inches(args.width, args.height)
 
     # if args.compress:
     #     # empty  name1 name2 ...
