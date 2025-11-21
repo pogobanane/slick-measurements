@@ -41,3 +41,8 @@ microbenchmarks.pdf:
 		--width $(DWIDTH) --height 2 \
 		--1 ./flake.nix
 
+packet-overhead.pdf:
+	python3 $(PYARGS) packet-overhead.py \
+		-o $(OUT_DIR)/packet-overhead.pdf \
+		--width $(DWIDTH) --height 2 \
+		--1 ./flake.nix
